@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MALANG.HIDDEN - Discover the Unseen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #080c10;
+    --surface: #0d1117;
+    --surface2: #161b22;
+    --border: #21262d;
+    --accent: #00ff9d;
+    --accent2: #ff6b35;
+    --accent3: #7c3aed;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #484f58;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    --map-filter: invert(1) hue-rotate(180deg) saturate(0.8) brightness(0.7);
+    --scanline-color: rgba(0,255,157,0.08);
+    --coords-bg: rgba(8,12,16,0.8);
+  }
+
+  :root.light {
+    --bg: #f0ede8;
+    --surface: #faf9f7;
+    --surface2: #ede9e3;
+    --border: #d4cfc8;
+    --accent: #00915a;
+    --accent2: #d44d1c;
+    --accent3: #5b21b6;
+    --text: #1a1410;
+    --text2: #6b6560;
+    --text3: #a09890;
+    --map-filter: none;
+    --scanline-color: rgba(0,145,90,0.05);
+    --coords-bg: rgba(240,237,232,0.9);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  *, *::before, *::after {
+    transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    height: 100vh;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* SCAN LINE */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -100%;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(transparent, var(--scanline-color), transparent);
+    animation: scanline 8s linear infinite;
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  @keyframes scanline {
+    0% { top: -5%; }
+    100% { top: 105%; }
+  }
+
+  /* LAYOUT */
+  .app {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    grid-template-rows: 64px 1fr;
+    height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 24px;
+    position: relative;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .logo span { color: var(--accent); }
+
+  .header-stats {
+    display: flex;
+    gap: 32px;
+    margin-left: 32px;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-val {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,255,157,0.08);
+    border: 1px solid rgba(0,255,157,0.2);
+    padding: 4px 12px;
+    border-radius: 2px;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--accent);
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
+  }
+
+  .sidebar-top {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-wrapper {
+    position: relative;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text3);
+    font-size: 12px;
+  }
+
+  .search-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 10px 12px 10px 32px;
+    outline: none;
+    border-radius: 2px;
+    transition: border-color 0.2s;
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,255,157,0.06);
+  }
+
+  .search-input::placeholder { color: var(--text3); }
+
+  .filter-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+    letter-spacing: 0.5px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .filter-btn.active {
+    background: rgba(0,255,157,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .filter-btn .cat-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  /* PLACE LIST */
+  .place-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .place-list::-webkit-scrollbar { width: 4px; }
+  .place-list::-webkit-scrollbar-track { background: transparent; }
+  .place-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .list-section-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text3);
+    text-transform: uppercase;
+    padding: 12px 8px 6px;
+  }
+
+  .place-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .place-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background 0.15s;
+  }
+
+  .place-card:hover {
+    border-color: rgba(0,255,157,0.3);
+    background: rgba(0,255,157,0.03);
+  }
+
+  .place-card:hover::before { background: var(--accent); }
+
+  .place-card.active {
+    border-color: var(--accent);
+    background: rgba(0,255,157,0.06);
+  }
+
+  .place-card.active::before { background: var(--accent); }
+
+  .place-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+  }
+
+  .place-name {
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .place-badge {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-left: 8px;
+    flex-shrink: 0;
+  }
+
+  .place-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 10px;
+    color: var(--text3);
+    margin-bottom: 8px;
+  }
+
+  .place-desc {
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .place-tags {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .tag {
+    font-size: 9px;
+    padding: 2px 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text3);
+    letter-spacing: 0.3px;
+  }
+
+  /* MAP */
+  .map-container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  #map {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* MAP OVERLAY UI */
+  .map-overlay {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .map-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 8px 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .map-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* DETAIL PANEL */
+  .detail-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 24px 28px;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 500;
+    max-height: 280px;
+  }
+
+  .detail-panel.open { transform: translateY(0); }
+
+  .detail-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+
+  .detail-close:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .detail-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .detail-name {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  .detail-address {
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  .detail-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .detail-stat {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 12px;
+    border-radius: 2px;
+  }
+
+  .detail-stat-val {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .detail-stat-label {
+    font-size: 9px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  .detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 10px 16px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+    text-align: left;
+  }
+
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .action-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+  }
+
+  .action-btn.primary:hover { background: #00e68a; }
+
+  /* LEAFLET OVERRIDES */
+  .leaflet-container {
+    background: var(--bg) !important;
+    cursor: crosshair !important;
+  }
+
+  .leaflet-tile-pane { filter: var(--map-filter); transition: filter 0.35s ease; }
+
+  .leaflet-control-zoom {
+    border: 1px solid var(--border) !important;
+    border-radius: 2px !important;
+    overflow: hidden;
+  }
+
+  .leaflet-control-zoom a {
+    background: var(--surface) !important;
+    color: var(--text2) !important;
+    border-color: var(--border) !important;
+    font-family: var(--font-mono) !important;
+  }
+
+  .leaflet-control-zoom a:hover { background: var(--surface2) !important; color: var(--accent) !important; }
+
+  .leaflet-popup-content-wrapper {
+    background: var(--surface) !important;
+    border: 1px solid var(--accent) !important;
+    border-radius: 2px !important;
+    box-shadow: 0 0 20px rgba(0,255,157,0.15) !important;
+    color: var(--text) !important;
+    font-family: var(--font-mono) !important;
+  }
+
+  .leaflet-popup-tip { background: var(--surface) !important; }
+
+  /* CUSTOM MARKER */
+  .custom-marker {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    border: 2px solid;
+    transition: all 0.2s;
+  }
+
+  .custom-marker svg {
+    transform: rotate(45deg);
+    width: 14px;
+    height: 14px;
+  }
+
+  /* LOADING */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    gap: 20px;
+    transition: opacity 0.5s;
+  }
+
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .loading-logo {
+    font-family: var(--font-display);
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -2px;
+  }
+
+  .loading-logo span { color: var(--accent); }
+
+  .loading-bar {
+    width: 280px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .loading-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 12px rgba(0,255,157,0.6);
+  }
+
+  .loading-text {
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* FOOTER CREDIT */
+  .credit {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 500;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+
+  .credit-line {
+    width: 24px;
+    height: 1px;
+    background: var(--text3);
+  }
+
+  /* LOADING DOTS */
+  .loading-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .loading-dots span {
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: dotbounce 1.4s ease-in-out infinite both;
+  }
+
+  .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes dotbounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* EMPTY STATE */
+  .empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text3);
+    font-size: 11px;
+    line-height: 2;
+    letter-spacing: 0.5px;
+  }
+
+  /* COORDS DISPLAY */
+  .coords-bar {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 500;
+    background: var(--coords-bg);
+    border: 1px solid var(--border);
+    padding: 5px 10px;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(4px);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
+  .coords-bar span { color: var(--accent); }
+
+  /* THEME TOGGLE */
+  .theme-toggle {
+    position: relative;
+    width: 52px;
+    height: 28px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .theme-toggle-track {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px;
+    font-size: 11px;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .theme-toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    background: var(--accent);
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+
+  :root.light .theme-toggle-knob {
+    transform: translateX(24px);
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-logo">MALANG<span>.</span>HIDDEN</div>
+  <div class="loading-dots">
+    <span></span><span></span><span></span>
+  </div>
+  <div class="loading-bar">
+    <div class="loading-bar-fill" id="loadingBar"></div>
+  </div>
+  <div class="loading-text" id="loadingText">Initializing map engine...</div>
+</div>
+
+<div class="app">
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      MALANG<span>.</span>HIDDEN
+    </div>
+    <div class="header-stats">
+      <div class="stat">
+        <div class="stat-val" id="totalCount">-</div>
+        <div class="stat-label">Locations</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="cafeCount">-</div>
+        <div class="stat-label">Cafes</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="restoCount">-</div>
+        <div class="stat-label">Restaurants</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="spotCount">-</div>
+        <div class="stat-label">Spots</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        LIVE DATA
+      </div>
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+        <div class="theme-toggle-track">
+          <span>🌙</span>
+          <span>☀️</span>
+        </div>
+        <div class="theme-toggle-knob" id="themeKnob">🌙</div>
+      </button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="search-wrapper">
+        <span class="search-icon">⌕</span>
+        <input type="text" class="search-input" id="searchInput" placeholder="Search locations...">
+      </div>
+      <div class="filter-row" id="filterRow">
+        <button class="filter-btn active" data-filter="all">
+          <span class="cat-dot" style="background:var(--text)"></span>ALL
+        </button>
+        <button class="filter-btn" data-filter="cafe">
+          <span class="cat-dot" style="background:#00ff9d"></span>CAFE
+        </button>
+        <button class="filter-btn" data-filter="restaurant">
+          <span class="cat-dot" style="background:#ff6b35"></span>RESTO
+        </button>
+        <button class="filter-btn" data-filter="bar">
+          <span class="cat-dot" style="background:#7c3aed"></span>BAR
+        </button>
+        <button class="filter-btn" data-filter="attraction">
+          <span class="cat-dot" style="background:#0ea5e9"></span>SPOT
+        </button>
+        <button class="filter-btn" data-filter="park">
+          <span class="cat-dot" style="background:#84cc16"></span>PARK
+        </button>
+      </div>
+    </div>
+
+    <div class="place-list" id="placeList">
+      <div class="empty-state">SCANNING AREA...</div>
+    </div>
+  </aside>
+
+  <!-- MAP -->
+  <div class="map-container">
+    <div id="map"></div>
+
+    <div class="map-overlay">
+      <button class="map-btn" id="btnLocate">◎ MY LOCATION</button>
+      <button class="map-btn" id="btnReset">⊕ RESET VIEW</button>
+    </div>
+
+    <div class="coords-bar" id="coordsBar">LAT <span id="latVal">-</span> · LNG <span id="lngVal">-</span></div>
+
+    <!-- DETAIL PANEL -->
+    <div class="detail-panel" id="detailPanel">
+      <button class="detail-close" id="detailClose">✕ CLOSE</button>
+      <div class="detail-inner" id="detailInner"></div>
+    </div>
+
+    <!-- CREDIT -->
+    <div class="credit" id="creditBar">
+      <div class="credit-line"></div>
+      CRAFTED BY AGUS SATRIA ADHITAMA · MALANG, EAST JAVA
+      <div class="credit-line"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───
+const MALANG_CENTER = [-7.9797, 112.6304];
+const ZOOM_DEFAULT = 14;
+
+// ─── CATEGORY CONFIG ───
+const CAT_CONFIG = {
+  cafe:       { label: 'CAFE',       color: '#00ff9d', icon: '☕', emoji: '⬡' },
+  restaurant: { label: 'RESTO',      color: '#ff6b35', icon: '🍜', emoji: '⬡' },
+  bar:        { label: 'BAR',        color: '#7c3aed', icon: '🍺', emoji: '⬡' },
+  attraction: { label: 'SPOT',       color: '#0ea5e9', icon: '📍', emoji: '⬡' },
+  park:       { label: 'PARK',       color: '#84cc16', icon: '🌿', emoji: '⬡' },
+  other:      { label: 'OTHER',      color: '#8b949e', icon: '◉',  emoji: '⬡' },
+};
+
+// ─── STATE ───
+let allPlaces = [];
+let markers = {};
+let activeFilter = 'all';
+let activeCard = null;
+let map;
+
+// ─── LOADING SEQUENCE ───
+const loadingSteps = [
+  'Initializing map engine...',
+  'Fetching live data from OpenStreetMap...',
+  'Processing location nodes...',
+  'Rendering Malang grid...',
+  'Unlocking hidden gems...',
+];
+
+let step = 0;
+const loadInterval = setInterval(() => {
+  const pct = Math.min((step / (loadingSteps.length - 1)) * 100, 95);
+  document.getElementById('loadingBar').style.width = pct + '%';
+  document.getElementById('loadingText').textContent = loadingSteps[step] || '';
+  step++;
+  if (step > loadingSteps.length) clearInterval(loadInterval);
+}, 500);
+
+// ─── MAP INIT ───
+function initMap() {
+  map = L.map('map', {
+    center: MALANG_CENTER,
+    zoom: ZOOM_DEFAULT,
+    zoomControl: true,
+    attributionControl: false,
+  });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+  }).addTo(map);
+
+  map.on('mousemove', (e) => {
+    document.getElementById('latVal').textContent = e.latlng.lat.toFixed(5);
+    document.getElementById('lngVal').textContent = e.latlng.lng.toFixed(5);
+  });
+
+  map.on('click', () => closeDetail());
+}
+
+// ─── OVERPASS FETCH ───
+async function fetchPlaces() {
+  const bbox = '-8.05,112.50,-7.85,112.75';
+  const query = `
+    [out:json][timeout:30];
+    (
+      node["amenity"="cafe"](${bbox});
+      node["amenity"="restaurant"](${bbox});
+      node["amenity"="bar"](${bbox});
+      node["amenity"="pub"](${bbox});
+      node["tourism"="attraction"](${bbox});
+      node["leisure"="park"](${bbox});
+      node["tourism"="viewpoint"](${bbox});
+    );
+    out body 120;
+  `;
+
+  const res = await fetch('https://overpass-api.de/api/interpreter', {
+    method: 'POST',
+    body: 'data=' + encodeURIComponent(query),
+  });
+
+  const data = await res.json();
+  return data.elements.filter(e => e.tags && e.tags.name);
+}
+
+// ─── NORMALIZE ───
+function normalize(el) {
+  const amenity = el.tags.amenity || el.tags.tourism || el.tags.leisure || 'other';
+  let cat = 'other';
+  if (['cafe'].includes(amenity)) cat = 'cafe';
+  else if (['restaurant'].includes(amenity)) cat = 'restaurant';
+  else if (['bar', 'pub'].includes(amenity)) cat = 'bar';
+  else if (['attraction', 'viewpoint'].includes(amenity)) cat = 'attraction';
+  else if (['park'].includes(amenity)) cat = 'park';
+
+  return {
+    id: el.id,
+    name: el.tags.name,
+    lat: el.lat,
+    lng: el.lon,
+    cat,
+    address: [el.tags['addr:street'], el.tags['addr:housenumber']].filter(Boolean).join(' ') || el.tags['addr:full'] || 'Malang, East Java',
+    phone: el.tags.phone || el.tags['contact:phone'] || null,
+    website: el.tags.website || el.tags['contact:website'] || null,
+    opening: el.tags.opening_hours || null,
+    cuisine: el.tags.cuisine || null,
+    wifi: el.tags.internet_access === 'wlan' ? 'WiFi' : null,
+  };
+}
+
+// ─── RENDER MARKER ───
+function createMarkerIcon(cat) {
+  const cfg = CAT_CONFIG[cat] || CAT_CONFIG.other;
+  const html = `
+    <div style="
+      width:28px; height:28px;
+      background:${cfg.color}18;
+      border:2px solid ${cfg.color};
+      border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 0 12px ${cfg.color}40;
+      transition: all 0.2s;
+    ">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="${cfg.color}" style="transform:rotate(45deg)">
+        <circle cx="6" cy="6" r="3"/>
+      </svg>
+    </div>`;
+  return L.divIcon({ html, className: '', iconSize: [28, 28], iconAnchor: [14, 28] });
+}
+
+function createMarkerIconActive(cat) {
+  const cfg = CAT_CONFIG[cat] || CAT_CONFIG.other;
+  const html = `
+    <div style="
+      width:36px; height:36px;
+      background:${cfg.color}30;
+      border:2px solid ${cfg.color};
+      border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow: 0 0 20px ${cfg.color}70;
+    ">
+      <svg width="14" height="14" viewBox="0 0 12 12" fill="${cfg.color}" style="transform:rotate(45deg)">
+        <circle cx="6" cy="6" r="4"/>
+      </svg>
+    </div>`;
+  return L.divIcon({ html, className: '', iconSize: [36, 36], iconAnchor: [18, 36] });
+}
+
+// ─── RENDER CARDS ───
+function renderList(places) {
+  const container = document.getElementById('placeList');
+  if (!places.length) {
+    container.innerHTML = '<div class="empty-state">NO LOCATIONS FOUND<br>TRY DIFFERENT FILTER</div>';
+    return;
+  }
+
+  container.innerHTML = `<div class="list-section-label">- ${places.length} LOCATION${places.length > 1 ? 'S' : ''} FOUND -</div>`;
+
+  places.forEach(p => {
+    const cfg = CAT_CONFIG[p.cat] || CAT_CONFIG.other;
+    const card = document.createElement('div');
+    card.className = 'place-card';
+    card.dataset.id = p.id;
+
+    const tags = [p.cuisine, p.wifi, p.opening ? 'OPEN INFO' : null].filter(Boolean);
+
+    card.innerHTML = `
+      <div class="place-header">
+        <div class="place-name">${p.name}</div>
+        <span class="place-badge" style="background:${cfg.color}18; border:1px solid ${cfg.color}40; color:${cfg.color}">${cfg.label}</span>
+      </div>
+      <div class="place-meta">
+        <span style="color:${cfg.color}">●</span>
+        <span>${p.address.substring(0, 40)}${p.address.length > 40 ? '…' : ''}</span>
+      </div>
+      ${tags.length ? `<div class="place-tags">${tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>` : ''}
+    `;
+
+    card.addEventListener('click', () => selectPlace(p));
+    container.appendChild(card);
+  });
+}
+
+// ─── FILTER ───
+function getFiltered() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  return allPlaces.filter(p => {
+    const matchFilter = activeFilter === 'all' || p.cat === activeFilter;
+    const matchSearch = !query || p.name.toLowerCase().includes(query) || p.address.toLowerCase().includes(query);
+    return matchFilter && matchSearch;
+  });
+}
+
+function applyFilter() {
+  const filtered = getFiltered();
+  renderList(filtered);
+
+  // show/hide markers
+  Object.entries(markers).forEach(([id, m]) => {
+    const place = allPlaces.find(p => p.id == id);
+    if (!place) return;
+    const visible = filtered.some(p => p.id == id);
+    if (visible) { if (!map.hasLayer(m)) m.addTo(map); }
+    else { if (map.hasLayer(m)) map.removeLayer(m); }
+  });
+}
+
+// ─── SELECT ───
+function selectPlace(place) {
+  // Update card
+  document.querySelectorAll('.place-card').forEach(c => c.classList.remove('active'));
+  const card = document.querySelector(`.place-card[data-id="${place.id}"]`);
+  if (card) {
+    card.classList.add('active');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // Update markers
+  if (activeCard && markers[activeCard]) {
+    const prev = allPlaces.find(p => p.id == activeCard);
+    if (prev) markers[activeCard].setIcon(createMarkerIcon(prev.cat));
+  }
+  activeCard = place.id;
+  if (markers[place.id]) markers[place.id].setIcon(createMarkerIconActive(place.cat));
+
+  // Fly to
+  map.flyTo([place.lat, place.lng], 17, { duration: 1.2, easeLinearity: 0.25 });
+
+  // Show detail
+  showDetail(place);
+}
+
+function showDetail(p) {
+  const cfg = CAT_CONFIG[p.cat] || CAT_CONFIG.other;
+  const panel = document.getElementById('detailPanel');
+  const inner = document.getElementById('detailInner');
+  const creditBar = document.getElementById('creditBar');
+
+  inner.innerHTML = `
+    <div>
+      <div style="font-size:10px; letter-spacing:2px; color:var(--text3); margin-bottom:8px; text-transform:uppercase">${cfg.label} · MALANG</div>
+      <div class="detail-name" style="color:${cfg.color}">${p.name}</div>
+      <div class="detail-address">${p.address}</div>
+      ${p.opening ? `<div style="margin-top:8px; font-size:10px; color:var(--text3)">${p.opening}</div>` : ''}
+    </div>
+    <div class="detail-stats-grid">
+      <div class="detail-stat">
+        <div class="detail-stat-val" style="color:${cfg.color}">${p.lat.toFixed(4)}</div>
+        <div class="detail-stat-label">Latitude</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val" style="color:${cfg.color}">${p.lng.toFixed(4)}</div>
+        <div class="detail-stat-label">Longitude</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val" style="color:${cfg.color}">${cfg.label}</div>
+        <div class="detail-stat-label">Category</div>
+      </div>
+      <div class="detail-stat">
+        <div class="detail-stat-val" style="color:${cfg.color}">${p.wifi ? 'YES' : '-'}</div>
+        <div class="detail-stat-label">WiFi</div>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button class="action-btn primary" onclick="openMaps(${p.lat}, ${p.lng})">⊕ OPEN IN MAPS</button>
+      ${p.website ? `<button class="action-btn" onclick="window.open('${p.website}','_blank')">↗ WEBSITE</button>` : ''}
+      ${p.phone ? `<button class="action-btn" onclick="window.open('tel:${p.phone}')">${p.phone}</button>` : ''}
+    </div>
+  `;
+
+  panel.classList.add('open');
+  creditBar.style.opacity = '0';
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('open');
+  document.getElementById('creditBar').style.opacity = '1';
+  document.querySelectorAll('.place-card').forEach(c => c.classList.remove('active'));
+  if (activeCard && markers[activeCard]) {
+    const prev = allPlaces.find(p => p.id == activeCard);
+    if (prev) markers[activeCard].setIcon(createMarkerIcon(prev.cat));
+  }
+  activeCard = null;
+}
+
+function openMaps(lat, lng) {
+  window.open(`https://maps.google.com/?q=${lat},${lng}`, '_blank');
+}
+
+// ─── UPDATE STATS ───
+function updateStats(places) {
+  document.getElementById('totalCount').textContent = places.length;
+  document.getElementById('cafeCount').textContent = places.filter(p => p.cat === 'cafe').length;
+  document.getElementById('restoCount').textContent = places.filter(p => p.cat === 'restaurant').length;
+  document.getElementById('spotCount').textContent = places.filter(p => ['attraction', 'park'].includes(p.cat)).length;
+}
+
+// ─── MAIN ───
+async function main() {
+  initMap();
+
+  try {
+    const raw = await fetchPlaces();
+    allPlaces = raw.map(normalize);
+
+    // Add markers
+    allPlaces.forEach(p => {
+      const m = L.marker([p.lat, p.lng], { icon: createMarkerIcon(p.cat) });
+      m.addTo(map);
+      m.on('click', (e) => { L.DomEvent.stopPropagation(e); selectPlace(p); });
+      markers[p.id] = m;
+    });
+
+    updateStats(allPlaces);
+    renderList(allPlaces);
+
+  } catch (e) {
+    console.error(e);
+    document.getElementById('placeList').innerHTML =
+      '<div class="empty-state">CONNECTION ERROR<br>CHECK YOUR NETWORK</div>';
+  }
+
+  // Finish loading
+  document.getElementById('loadingBar').style.width = '100%';
+  document.getElementById('loadingText').textContent = 'Ready.';
+  setTimeout(() => {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+  }, 600);
+}
+
+// ─── EVENTS ───
+document.getElementById('filterRow').addEventListener('click', e => {
+  const btn = e.target.closest('.filter-btn');
+  if (!btn) return;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.filter;
+  applyFilter();
+});
+
+document.getElementById('searchInput').addEventListener('input', applyFilter);
+
+document.getElementById('detailClose').addEventListener('click', closeDetail);
+
+document.getElementById('btnLocate').addEventListener('click', () => {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(pos => {
+    map.flyTo([pos.coords.latitude, pos.coords.longitude], 16, { duration: 1.5 });
+  });
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  map.flyTo(MALANG_CENTER, ZOOM_DEFAULT, { duration: 1.2 });
+  closeDetail();
+});
+
+// ─── THEME TOGGLE ───
+let isLight = localStorage.getItem('theme') === 'light';
+
+function applyTheme(light) {
+  isLight = light;
+  const root = document.documentElement;
+  const knob = document.getElementById('themeKnob');
+  if (light) {
+    root.classList.add('light');
+    knob.textContent = '☀️';
+  } else {
+    root.classList.remove('light');
+    knob.textContent = '🌙';
+  }
+  localStorage.setItem('theme', light ? 'light' : 'dark');
+}
+
+// Apply saved theme on load
+applyTheme(isLight);
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  applyTheme(!isLight);
+});
+
+main();
+</script>
+</body>
+</html>
