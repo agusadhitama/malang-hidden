@@ -1,89 +1,78 @@
-# 🗺️ MALANG.HIDDEN - Discover the Unseen
+# 🗺️ MALANG.HIDDEN
 
-> An interactive dark map explorer for uncovering hidden cafes, restaurants, bars, and spots in Malang, East Java.
+> Peta interaktif untuk mengeksplorasi kafe, restoran, bar, dan tempat-tempat tersembunyi di Malang, Jawa Timur.
 
 ![Static Badge](https://img.shields.io/badge/status-live-00ff9d?style=flat-square)
 ![Static Badge](https://img.shields.io/badge/data-OpenStreetMap-blue?style=flat-square)
-![Static Badge](https://img.shields.io/badge/built%20with-HTML%20%2F%20CSS%20%2F%20JS-orange?style=flat-square)
+![Static Badge](https://img.shields.io/badge/dibuat%20dengan-HTML%20%2F%20CSS%20%2F%20JS-orange?style=flat-square)
 ![Static Badge](https://img.shields.io/badge/deploy-GitHub%20Pages-181717?style=flat-square&logo=github)
 
 ---
 
-## ✨ Features
+## ✨ Fitur
 
-- **Live Data** Fetches real-time location data directly from OpenStreetMap via Overpass API. No database needed.
-- **Interactive Map** Built with Leaflet.js, dark-themed with cyberpunk tile filter. Markers are color-coded by category.
-- **Dark / Light Mode** Smooth animated theme toggle with preference saved to localStorage.
-- **Category Filters** Filter by Cafe, Restaurant, Bar, Spot, or Park instantly.
-- **Search** Real-time search across location names and addresses.
-- **Location Detail Panel** Click any marker or card to reveal coordinates, category, WiFi info, opening hours, and a direct link to Google Maps.
-- **My Location** Jump to your current GPS position on the map.
-- **Coordinate Tracker** Live lat/lng display as you move your cursor across the map.
-- **Zero Backend** Pure static site. No server, no database, no maintenance.
-
----
-
-## 🖥️ Preview
-
-| Dark Mode | Light Mode |
-|-----------|------------|
-| Cyberpunk dark map with glowing markers | Warm beige palette with natural map tiles |
+- **Data Langsung** Mengambil data lokasi secara real-time dari OpenStreetMap via Overpass API. Tanpa database.
+- **Peta Interaktif** Dibangun dengan Leaflet.js, bertema gelap dengan filter tile cyberpunk. Marker berwarna sesuai kategori.
+- **Mode Gelap / Terang** Toggle tema dengan animasi smooth, preferensi tersimpan di localStorage.
+- **Filter Kategori** Filter berdasarkan Kafe, Restoran, Bar, Tempat Wisata, atau Taman.
+- **Pencarian** Cari nama lokasi dan alamat secara real-time.
+- **Panel Detail Lokasi** Klik marker atau kartu untuk melihat koordinat, kategori, info WiFi, jam buka, dan tautan langsung ke Google Maps.
+- **Lokasi Saya** Loncat ke posisi GPS kamu saat ini di peta.
+- **Pelacak Koordinat** Tampilan lat/lng live saat kursor bergerak di atas peta.
+- **Tanpa Backend** Murni static site. Tidak perlu server, database, atau maintenance rutin.
 
 ---
 
-## 🚀 Getting Started
+## 🖥️ Tampilan
 
-### Run Locally
+| Mode Gelap | Mode Terang |
+|------------|-------------|
+| Peta gelap cyberpunk dengan marker bercahaya | Palet krem hangat dengan tile peta natural |
+
+---
+
+## 🚀 Cara Menjalankan
+
+### Jalankan Secara Lokal
 
 ```bash
-# Clone the repo
-git clone https://github.com/YOUR_USERNAME/malang-hidden.git
+# Clone repositori
+git clone https://github.com/agusadhitama/malang-hidden.git
 
-# Open in browser — no build step needed
+# Buka di browser, tidak perlu proses build
 cd malang-hidden
 open index.html
 ```
 
-Or just drag `index.html` into your browser.
-
-### Deploy to GitHub Pages
-
-1. Push the repo to GitHub
-2. Go to **Settings → Pages**
-3. Set source to `Deploy from a branch` → `main` → `/ (root)`
-4. Your site will be live at:
-
-```
-https://YOUR_USERNAME.github.io/malang-hidden
-```
+Atau cukup drag file `index.html` ke browser.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Teknologi yang Digunakan
 
-| Tech | Usage |
-|------|-------|
-| HTML / CSS / JS | Core — no framework, no build tools |
-| [Leaflet.js](https://leafletjs.com/) | Interactive map rendering |
-| [OpenStreetMap](https://www.openstreetmap.org/) | Map tile provider |
-| [Overpass API](https://overpass-api.de/) | Live POI data for Malang |
+| Teknologi | Kegunaan |
+|-----------|----------|
+| HTML / CSS / JS | Inti aplikasi tanpa framework, tanpa build tools |
+| [Leaflet.js](https://leafletjs.com/) | Rendering peta interaktif |
+| [OpenStreetMap](https://www.openstreetmap.org/) | Penyedia tile peta |
+| [Overpass API](https://overpass-api.de/) | Data lokasi langsung untuk wilayah Malang |
 | [Google Fonts](https://fonts.google.com/) | Syne (display) + Space Mono (UI) |
-| GitHub Pages | Hosting |
+| GitHub Pages | Hosting gratis |
 
 ---
 
-## 📁 Project Structure
+## 📁 Struktur Proyek
 
 ```
 malang-hidden/
-└── index.html      # Entire app — single file, zero dependencies to install
+└── index.html      # Seluruh aplikasi satu file, tanpa instalasi dependency
 ```
 
 ---
 
-## 🗂️ Data Source
+## 🗂️ Sumber Data
 
-All location data is fetched live from **OpenStreetMap** using the Overpass API. The query covers the Malang bounding box and pulls:
+Semua data lokasi diambil langsung dari **OpenStreetMap** menggunakan Overpass API. Query mencakup area bounding box Malang dan mengambil:
 
 - `amenity = cafe`
 - `amenity = restaurant`
@@ -91,38 +80,38 @@ All location data is fetched live from **OpenStreetMap** using the Overpass API.
 - `tourism = attraction / viewpoint`
 - `leisure = park`
 
-Only nodes with a `name` tag are shown. Data updates automatically as OSM contributors add and edit locations.
+Hanya node yang memiliki tag `name` yang ditampilkan. Data diperbarui otomatis seiring kontribusi komunitas OSM.
 
 ---
 
-## 🎨 Design
+## 🎨 Desain
 
-- **Dark mode**: Deep navy/black with `#00ff9d` accent — cyberpunk terminal aesthetic
-- **Light mode**: Warm `#f0ede8` beige with `#00915a` accent — clean and readable
-- **Typography**: [Syne](https://fonts.google.com/specimen/Syne) for display + [Space Mono](https://fonts.google.com/specimen/Space+Mono) for UI
-- **Map**: Dark mode applies `invert + hue-rotate` CSS filter to OSM tiles for a night-map look
-
----
-
-## 📌 Roadmap
-
-- [ ] Bookmark / save favorite locations
-- [ ] Share a location via URL
-- [ ] User-submitted hidden gems (via GitHub Issues as backend)
-- [ ] Mobile-responsive layout
-- [ ] Distance from current location
+- **Mode gelap**: Navy/hitam pekat dengan aksen `#00ff9d` estetika terminal cyberpunk
+- **Mode terang**: Krem hangat `#f0ede8` dengan aksen `#00915a` bersih dan nyaman dibaca
+- **Tipografi**: [Syne](https://fonts.google.com/specimen/Syne) untuk judul + [Space Mono](https://fonts.google.com/specimen/Space+Mono) untuk UI
+- **Peta**: Mode gelap menerapkan filter CSS `invert + hue-rotate` pada tile OSM untuk tampilan peta malam
 
 ---
 
-## 📄 License
+## 📌 Rencana Pengembangan
 
-MIT License — free to use, modify, and distribute.
+- [ ] Simpan / bookmark lokasi favorit
+- [ ] Bagikan lokasi via URL
+- [ ] Kirim lokasi tersembunyi baru (via GitHub Issues sebagai backend)
+- [ ] Tampilan responsif untuk perangkat mobile
+- [ ] Jarak dari lokasi saat ini
+
+---
+
+## 📄 Lisensi
+
+MIT License bebas digunakan, dimodifikasi, dan didistribusikan.
 
 ---
 
 <div align="center">
 
-Crafted with precision by **Agus Satria Adhitama**  
-Malang, East Java 🌋
+Dibuat dengan teliti oleh **Agus Satria Adhitama**  
+Malang, Jawa Timur 🌋
 
 </div>
