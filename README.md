@@ -1,4 +1,4 @@
-# 🗺️ MALANG.HIDDEN
+# MALANG.HIDDEN
 
 > Peta interaktif untuk mengeksplorasi kafe, restoran, bar, dan tempat-tempat tersembunyi di Malang, Jawa Timur.
 
