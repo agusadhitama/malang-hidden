@@ -8,7 +8,7 @@
 ![Static Badge](https://img.shields.io/badge/deploy-GitHub%20Pages-181717?style=flat-square&logo=github)
 
 ---
-- https://agusadhitama.github.io/malang-hidden/
+- [KLIK DISINI](https://agusadhitama.github.io/malang-hidden/)
 ---
 
 ## ✨ Fitur
